@@ -8,4 +8,4 @@ matplotlib
 python-dateutil
 openpyxl
 scikit-learn
-math
+python-math
