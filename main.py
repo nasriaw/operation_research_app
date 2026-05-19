@@ -13,7 +13,6 @@ Version: 1.0.0
 import streamlit as st
 import pandas as pd
 import numpy as np
-import math
 from modules.solvers import (
     linear_programming_solver,
     transportation_problem_solver,
@@ -680,12 +679,14 @@ def queue_theory_page():
         service_rate = st.number_input("Tingkat Pelayanan (μ):", min_value=0.1, value=12.0, step=0.1, key="qt_service")
         num_servers = st.number_input("Jumlah Server:", min_value=1, max_value=10, value=1, key="qt_servers")
         queue_type = st.selectbox("Tipe Antrian:", ["M/M/1", "M/M/c"], index=0, key="qt_type")
+        service_cost_per_server = st.number_input("Biaya Pelayanan per Server per jam (Cs):", min_value=0.0, value=150000.0, step=1000.0, key="qt_service_cost")
+        waiting_cost_per_customer = st.number_input("Biaya Tunggu per Pelanggan per jam (Cw):", min_value=0.0, value=100000.0, step=1000.0, key="qt_wait_cost")
 
     with col2:
         # Solve with example
         if st.button("🚀 Gunakan Contoh Data", key="solve_qt_example"):
             try:
-                result = queue_theory_solver(10.0, 12.0, 1, "M/M/1")
+                result = queue_theory_solver(10.0, 12.0, 1, "M/M/1", 150000.0, 100000.0)
                 st.session_state.solver_results = result
                 display_results(result, "Queue Theory (M/M/1)")
             except Exception as e:
@@ -698,8 +699,17 @@ def queue_theory_page():
         # Solve with custom parameters
         if st.button("🚀 Hitung Manual", key="solve_qt_manual"):
             try:
-                qt_type = "M/M/1" if num_servers == 1 else "M/M/c"
-                result = queue_theory_solver(arrival_rate, service_rate, num_servers, qt_type)
+                qt_type = queue_type
+                if qt_type == "M/M/1":
+                    num_servers = 1
+                result = queue_theory_solver(
+                    arrival_rate,
+                    service_rate,
+                    num_servers,
+                    qt_type,
+                    service_cost_per_server,
+                    waiting_cost_per_customer
+                )
                 st.session_state.solver_results = result
                 display_results(result, f"Queue Theory ({qt_type})")
             except Exception as e:
@@ -1102,7 +1112,7 @@ def about_page():
     Untuk informasi lebih detail, lihat file README.md di folder aplikasi.
     
     ### 👨‍💻 Developer
-    Dikembangkan dengan tujuan pendidikan dan penelitian Operation Research.
+    Dikembangkan oleh: M Nasri AW, Dosen STIE Indonesia Malang, dengan tujuan pendidikan dan penelitian Operation Research.
     """)
 
 # ==================== RUN APPLICATION ====================
