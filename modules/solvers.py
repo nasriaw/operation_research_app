@@ -9,6 +9,7 @@ Module ini berisi implementasi solver untuk:
 - Shortest Path Problem
 """
 
+import math
 import numpy as np
 from scipy.optimize import linprog
 from scipy.optimize import linear_sum_assignment
@@ -337,7 +338,8 @@ def integer_programming_solver(obj_coeffs, constraint_matrix, constraint_bounds,
     return result
 
 # ==================== QUEUE THEORY SOLVER ====================
-def queue_theory_solver(arrival_rate, service_rate, num_servers=1, queue_type="M/M/1"):
+def queue_theory_solver(arrival_rate, service_rate, num_servers=1, queue_type="M/M/1",
+                         service_cost_per_server=0.0, waiting_cost_per_customer=0.0):
     """
     Menyelesaikan masalah Teori Antrian
     
@@ -351,6 +353,10 @@ def queue_theory_solver(arrival_rate, service_rate, num_servers=1, queue_type="M
         Jumlah server
     queue_type : str
         Tipe antrian (M/M/1, M/M/c, dll.)
+    service_cost_per_server : float
+        Biaya pelayanan per server per jam
+    waiting_cost_per_customer : float
+        Biaya tunggu per pelanggan per jam
     
     Returns:
     --------
@@ -378,15 +384,23 @@ def queue_theory_solver(arrival_rate, service_rate, num_servers=1, queue_type="M
         # Rata-rata panjang antrian
         lq = utilization * l
         
+        service_cost = num_servers * service_cost_per_server
+        waiting_cost = lq * waiting_cost_per_customer
+        total_cost = service_cost + waiting_cost
+        
         result = {
             "status": "Success",
             "queue_type": "M/M/1",
+            "num_servers": num_servers,
             "utilization_factor": utilization,
             "probability_empty": p0,
             "avg_customers_system": l,
             "avg_customers_queue": lq,
             "avg_waiting_time_system": w,
-            "avg_waiting_time_queue": wq
+            "avg_waiting_time_queue": wq,
+            "service_cost_per_hour": service_cost,
+            "waiting_cost_per_hour": waiting_cost,
+            "total_cost_per_hour": total_cost
         }
         
     elif queue_type == "M/M/c":
@@ -396,24 +410,39 @@ def queue_theory_solver(arrival_rate, service_rate, num_servers=1, queue_type="M
             return {"error": "System unstable - utilization >= 1", "status": "Error"}
         
         # Probabilitas sistem kosong
-        p0 = 1 / (sum([(arrival_rate/service_rate)**k / np.math.factorial(k) 
-                      for k in range(num_servers)]) + 
-                 (arrival_rate/service_rate)**num_servers / 
-                 (np.math.factorial(num_servers) * (1 - utilization)))
+        a = arrival_rate / service_rate
+        p0 = 1 / (sum([(a)**k / math.factorial(k) for k in range(num_servers)]) + 
+                 (a**num_servers) / (math.factorial(num_servers) * (1 - utilization)))
+        
+        # Rata-rata panjang antrian
+        lq = (p0 * a**num_servers * utilization) / (math.factorial(num_servers) * (1 - utilization)**2)
         
         # Rata-rata jumlah pelanggan dalam sistem
-        l = arrival_rate * (1 / (service_rate - arrival_rate/num_servers))
+        l = lq + a
         
         # Rata-rata waktu tunggu dalam sistem
         w = l / arrival_rate
         
+        # Rata-rata waktu tunggu dalam antrian
+        wq = lq / arrival_rate
+        
+        service_cost = num_servers * service_cost_per_server
+        waiting_cost = lq * waiting_cost_per_customer
+        total_cost = service_cost + waiting_cost
+        
         result = {
             "status": "Success",
             "queue_type": f"M/M/{num_servers}",
+            "num_servers": num_servers,
             "utilization_factor": utilization,
             "probability_empty": p0,
             "avg_customers_system": l,
-            "avg_waiting_time_system": w
+            "avg_customers_queue": lq,
+            "avg_waiting_time_system": w,
+            "avg_waiting_time_queue": wq,
+            "service_cost_per_hour": service_cost,
+            "waiting_cost_per_hour": waiting_cost,
+            "total_cost_per_hour": total_cost
         }
     
     else:

@@ -276,6 +276,14 @@ def display_queue_theory_results(result):
         metrics_data['Metrik'].extend(['Jumlah Server', 'Utilization per Server'])
         metrics_data['Nilai'].extend([result.get('num_servers', 'N/A'), result.get('utilization_factor', 'N/A')])
     
+    if 'service_cost_per_hour' in result:
+        metrics_data['Metrik'].extend(['Biaya Pelayanan per jam (Cs×c)', 'Biaya Tunggu per jam (Cw×Lq)', 'Total Biaya per jam'])
+        metrics_data['Nilai'].extend([
+            result.get('service_cost_per_hour', 'N/A'),
+            result.get('waiting_cost_per_hour', 'N/A'),
+            result.get('total_cost_per_hour', 'N/A')
+        ])
+    
     metrics_df = pd.DataFrame(metrics_data)
     st.dataframe(metrics_df, use_container_width=True)
 
