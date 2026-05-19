@@ -13,6 +13,7 @@ Version: 1.0.0
 import streamlit as st
 import pandas as pd
 import numpy as np
+import math
 from modules.solvers import (
     linear_programming_solver,
     transportation_problem_solver,
